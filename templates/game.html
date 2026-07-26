@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Крестики-нолики vs Компьютер</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>Крестики-нолики</h1>
+
+    <div id="board">
+        {% for i in range(3) %}
+            {% for j in range(3) %}
+                <div class="cell" data-row="{{i}}" data-col="{{j}}">
+                    {% if board[i][j] == 1 %}X{% elif board[i][j] == 2 %}O{% endif %}
+                </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+
+    <div id="status">
+        {% if winner == 1 %}
+            <p style="color:green; font-size:42px;">ТЫ ПОБЕДИЛ!</p>
+        {% elif winner == 2 %}
+            <p style="color:red; font-size:42px;">Компьютер победил :(</p>
+        {% elif winner == 0 %}
+            <p style="color:orange; font-size:42px;">Ничья!</p>
+        {% else %}
+        <p>Твой ход — X</p>
+        {% endif %}
+    </div>
+
+    <p><a href="/game/new">Новая игра</a></p>
+
+    <script>
+        const field = document.querySelectorAll('.cell');
+        const uuid = "{{ uuid }}";
+
+        field.forEach(cell => {
+            cell.onclick = async function() {
+                if (this.textContent.trim() !== "") return;
+
+                const row = this.dataset.row;
+                const col = this.dataset.col;
+
+                let newBoard = {{ board|tojson }};
+                newBoard[row][col] = 1;
+
+                try {
+                    const response = await fetch(`/game/${uuid}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ field: newBoard })
+                    });
+
+                    if (response.ok) {
+                        window.location.href = `/game/${uuid}`;
+                    } else {
+                        const error = await response.json();
+                        alert("Ошибка: " + (error.error || "неизвестно"));
+                    }
+                } catch (e) {
+                    alert("Ошибка сети");
+                }
+            };
+        });
+    </script>
+</body>
+</html>
