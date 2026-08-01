@@ -12,8 +12,12 @@
     <div id="board">
         {% for i in range(3) %}
             {% for j in range(3) %}
-                <div class="cell" data-row="{{i}}" data-col="{{j}}">
-                    {% if board[i][j] == 1 %}X{% elif board[i][j] == 2 %}O{% endif %}
+                <div class="cell" data-row="{{ i }}" data-col="{{ j }}">
+                    {% if board[i][j] == 1 %}
+                        X
+                    {% elif board[i][j] == 2 %}
+                        O
+                    {% endif %}
                 </div>
             {% endfor %}
         {% endfor %}
@@ -27,25 +31,27 @@
         {% elif winner == 0 %}
             <p style="color:orange; font-size:42px;">Ничья!</p>
         {% else %}
-        <p>Твой ход — X</p>
+            <p>Твой ход — X</p>
         {% endif %}
     </div>
 
     <p><a href="/game/new">Новая игра</a></p>
 
     <script>
-        const field = document.querySelectorAll('.cell');
-        const uuid = "{{ uuid }}";
+        const cells = document.querySelectorAll('.cell');
+        const uuid = "{{ game_uuid }}";
 
-        field.forEach(cell => {
+        cells.forEach(cell => {
             cell.onclick = async function() {
+                // Если клетка уже занята, ничего не делаем
                 if (this.textContent.trim() !== "") return;
 
                 const row = this.dataset.row;
                 const col = this.dataset.col;
 
-                let newBoard = {{ board|tojson }};
-                newBoard[row][col] = 1;
+                // Берем текущее поле, которое отдал сервер при загрузке
+                let newBoard = {{ board | tojson }};
+                newBoard[row][col] = 1; // 1 = крестик игрока
 
                 try {
                     const response = await fetch(`/game/${uuid}`, {
@@ -55,12 +61,16 @@
                     });
 
                     if (response.ok) {
-                        window.location.href = `/game/${uuid}`;
+                        // ГЛАВНОЕ ИСПРАВЛЕНИЕ:
+                        // Вместо перезагрузки текущей страницы (которая может быть /game/new и создаст новую пустую игру),
+                        // мы переходим на страницу КОНКРЕТНОЙ сохраненной игры, чтобы увидеть обновленное поле.
+                        window.location.href = '/game/' + uuid;
                     } else {
                         const error = await response.json();
                         alert("Ошибка: " + (error.error || "неизвестно"));
                     }
                 } catch (e) {
+                    console.error(e);
                     alert("Ошибка сети");
                 }
             };
