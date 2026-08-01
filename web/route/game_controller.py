@@ -89,8 +89,13 @@ def new_game_page():
     game = Game(user_uuid=request.user_uuid)
     container.repository.save(game)
 
-    return render_template('game.html', game_uuid=game.uuid, board=game.board.field)
-
+    # Явно передаем winner=None, чтобы шаблон знал, что игра только началась
+    return render_template(
+        'game.html',
+        game_uuid=game.uuid,
+        board=game.board.field,
+        winner=None  # <-- ДОБАВИТЬ ЭТУ СТРОКУ
+    )
 
 @game_bp.route('/game/<uuid_str>')
 @require_auth

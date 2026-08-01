@@ -41,17 +41,32 @@
         const cells = document.querySelectorAll('.cell');
         const uuid = "{{ game_uuid }}";
 
+        // Безопасное получение winner (будет null, 0, 1 или 2)
+        const winner = {{ winner | default(None) | tojson }};
+
+        let isProcessing = false;
+
+        // Блокируем поле, если игра уже закончена (победа, поражение или ничья)
+        if (winner === 1 || winner === 2 || winner === 0) {
+            isProcessing = true;
+            cells.forEach(cell => cell.style.pointerEvents = 'none');
+        }
+
         cells.forEach(cell => {
             cell.onclick = async function() {
-                // Если клетка уже занята, ничего не делаем
-                if (this.textContent.trim() !== "") return;
+                // Блокировка 1: Если клетка занята или идет обработка
+                if (this.textContent.trim() !== "" || isProcessing) return;
+
+                // Блокировка 2: Запрещаем клики до завершения запроса
+                isProcessing = true;
+                cells.forEach(c => c.style.pointerEvents = 'none');
+                this.textContent = "X";
 
                 const row = this.dataset.row;
                 const col = this.dataset.col;
 
-                // Берем текущее поле, которое отдал сервер при загрузке
                 let newBoard = {{ board | tojson }};
-                newBoard[row][col] = 1; // 1 = крестик игрока
+                newBoard[row][col] = 1;
 
                 try {
                     const response = await fetch(`/game/${uuid}`, {
@@ -61,16 +76,19 @@
                     });
 
                     if (response.ok) {
-                        // ГЛАВНОЕ ИСПРАВЛЕНИЕ:
-                        // Вместо перезагрузки текущей страницы (которая может быть /game/new и создаст новую пустую игру),
-                        // мы переходим на страницу КОНКРЕТНОЙ сохраненной игры, чтобы увидеть обновленное поле.
                         window.location.href = '/game/' + uuid;
                     } else {
+                        isProcessing = false;
+                        cells.forEach(c => c.style.pointerEvents = 'auto');
+                        this.textContent = "";
+
                         const error = await response.json();
                         alert("Ошибка: " + (error.error || "неизвестно"));
                     }
                 } catch (e) {
-                    console.error(e);
+                    isProcessing = false;
+                    cells.forEach(c => c.style.pointerEvents = 'auto');
+                    this.textContent = "";
                     alert("Ошибка сети");
                 }
             };
