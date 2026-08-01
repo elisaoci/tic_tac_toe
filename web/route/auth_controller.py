@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template
 import base64
 from di.container import Container
 
@@ -10,23 +10,49 @@ user_service = container.user_service
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
-    """Эндпоинт для регистрации нового пользователя (принимает только JSON)"""
-    data = request.get_json()
+    # 1. Пытаемся получить JSON (если запрос от тестового скрипта)
+    data = request.get_json(silent=True)
 
-    if not data or 'login' not in data or 'password' not in data:
+    # 2. Если JSON нет, берем данные из HTML-формы
+    if not data:
+        data = {
+            'login': request.form.get('login'),
+            'password': request.form.get('password')
+        }
+
+    # 3. Проверка на пустые поля
+    if not data or not data.get('login') or not data.get('password'):
+        if request.form:
+            return "Ошибка: не хватает логина или пароля. <a href='/register_page'>Попробовать снова</a>", 400
         return jsonify({"error": "Не хватает логина или пароля"}), 400
 
-    success = user_service.register(data['login'], data['password'])
+    login = data['login']
+    password = data['password']
+
+    # 4. Вызываем сервис регистрации
+    success = user_service.register(login, password)
 
     if success:
+        if request.form:
+            return f'''
+            <h2>✅ Регистрация успешна!</h2>
+            <p>Пользователь <b>{login}</b> создан.</p>
+            <p><a href="/game/new">Нажми здесь, чтобы войти и начать игру</a></p>
+            ''', 200
         return jsonify({"message": "Успешная регистрация"}), 201
     else:
+        if request.form:
+            return f"Ошибка: Пользователь с логином <b>{login}</b> уже существует. <a href='/register_page'>Попробовать другой логин</a>", 400
         return jsonify({"error": "Пользователь с таким логином уже существует"}), 400
+
+
+@auth_bp.route('/register_page')
+def register_page():
+    return render_template('register.html')
 
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    """Эндпоинт для входа (авторизации)"""
     auth_header = request.headers.get('Authorization')
 
     if not auth_header:
