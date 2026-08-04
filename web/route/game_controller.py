@@ -172,3 +172,10 @@ def join_game_api(uuid_str: str):
         if not request.is_json:
             return f"Ошибка: {str(e)}. <a href='/games/new'>Вернуться к выбору игр</a>", 400
         return jsonify({"error": str(e)}), 400
+
+@game_bp.route('/games/lobby')
+@require_auth
+def lobby_page():
+    """Страница лобби для выбора игры PvP"""
+    games = game_service.get_available_games()
+    return render_template('lobby.html', games=games)

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Лобби игр</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .lobby-container { max-width: 600px; margin: 50px auto; text-align: center; }
+        .game-card { background: #f9f9f9; border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-join { padding: 8px 16px; background-color: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; }
+        .btn-join:hover { background-color: #0b7dda; }
+    </style>
+</head>
+<body>
+    <div class="lobby-container">
+        <h1>👀 Лобби игр (PvP)</h1>
+        <p>Выберите игру, чтобы присоединиться:</p>
+
+        {% if games %}
+            {% for game in games %}
+                <div class="game-card">
+                    <span>
+                        Игра #{{ (game.uuid or '')[:8] }}...
+                        (Создал: {{ (game.player1_uuid or game.user_uuid or 'неизвестно')[:8] }}...)
+                    </span>
+                    <form action="/games/{{ game.uuid }}/join" method="POST" style="margin:0;">
+                        <button type="submit" class="btn-join">Присоединиться</button>
+                    </form>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p style="color: gray;">В данный момент нет игр, ожидающих второго игрока.</p>
+        {% endif %}
+
+        <br>
+        <a href="/games/new">➕ Создать новую игру</a> | <a href="/">← На главную</a>
+    </div>
+</body>
+</html>
