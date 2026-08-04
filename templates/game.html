@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Крестики-нолики vs Компьютер</title>
+    <title>Крестики-нолики</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -24,49 +24,77 @@
     </div>
 
     <div id="status">
-        {% if winner == 1 %}
-            <p style="color:green; font-size:42px;">ТЫ ПОБЕДИЛ!</p>
-        {% elif winner == 2 %}
-            <p style="color:red; font-size:42px;">Компьютер победил :(</p>
-        {% elif winner == 0 %}
-            <p style="color:orange; font-size:42px;">Ничья!</p>
+        {% if game_status == 'win' %}
+            {% if (winner == 1 and is_player1) or (winner == 2 and is_player2) %}
+                <p style="color:green; font-size:42px;">🏆 ТЫ ПОБЕДИЛ!</p>
+            {% else %}
+                <p style="color:red; font-size:42px;">😔 Ты проиграл</p>
+            {% endif %}
+
+        {% elif game_status == 'draw' %}
+            <p style="color:orange; font-size:42px;">🤝 Ничья!</p>
+
+        {% elif game_status == 'waiting' %}
+            {% if not is_player1 %}
+                <p style="color:blue; font-size:24px;">⏳ Игра ожидает второго игрока</p>
+                <form action="/games/{{ game_uuid }}/join" method="POST" style="margin-top: 15px;">
+                    <button type="submit" style="padding: 10px 20px; font-size: 18px; background-color: #2196F3; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        👥 Присоединиться к игре
+                    </button>
+                </form>
+            {% else %}
+                <p style="color:blue; font-size:24px;">⏳ Ожидание второго игрока...</p>
+                <p style="font-size:16px; background: #f0f0f0; padding: 10px; border-radius: 5px;">
+                    Скопируй и отправь эту ссылку другу:<br>
+                    <strong>http://127.0.0.1:5001/game/{{ game_uuid }}</strong>
+                </p>
+            {% endif %}
+
+        {% elif game_status == 'in_progress' and not is_my_turn %}
+            <p style="color:purple; font-size:24px;">⏳ Ход соперника...</p>
+
         {% else %}
-            <p>Твой ход — X</p>
+            <p style="font-size:24px;">✅ Твой ход!</p>
         {% endif %}
     </div>
 
-    <p><a href="/game/new">Новая игра</a></p>
+    <p><a href="/games/new">Новая игра (выбор режима)</a></p>
 
     <script>
         const cells = document.querySelectorAll('.cell');
         const uuid = "{{ game_uuid }}";
 
-        // Безопасное получение winner (будет null, 0, 1 или 2)
+        // Получаем данные из Python
         const winner = {{ winner | default(None) | tojson }};
+        const isMyTurn = {{ is_my_turn | tojson }};
+        const mySymbol = {{ my_symbol }}; // 1 для X, 2 для O
 
         let isProcessing = false;
 
-        // Блокируем поле, если игра уже закончена (победа, поражение или ничья)
-        if (winner === 1 || winner === 2 || winner === 0) {
+        // Блокируем поле, если игра закончена ИЛИ сейчас не наш ход
+        if (winner === 1 || winner === 2 || winner === 0 || !isMyTurn) {
             isProcessing = true;
             cells.forEach(cell => cell.style.pointerEvents = 'none');
         }
 
         cells.forEach(cell => {
             cell.onclick = async function() {
-                // Блокировка 1: Если клетка занята или идет обработка
+                // Блокировка: Если клетка занята или идет обработка запроса
                 if (this.textContent.trim() !== "" || isProcessing) return;
 
-                // Блокировка 2: Запрещаем клики до завершения запроса
                 isProcessing = true;
                 cells.forEach(c => c.style.pointerEvents = 'none');
-                this.textContent = "X";
+
+                // ИСПРАВЛЕНИЕ 1: Показываем правильный символ сразу (X или O)
+                this.textContent = mySymbol === 1 ? "X" : "O";
 
                 const row = this.dataset.row;
                 const col = this.dataset.col;
 
                 let newBoard = {{ board | tojson }};
-                newBoard[row][col] = 1;
+
+                // ИСПРАВЛЕНИЕ 2: Записываем в массив правильный символ (1 или 2)
+                newBoard[row][col] = mySymbol;
 
                 try {
                     const response = await fetch(`/game/${uuid}`, {
@@ -80,7 +108,7 @@
                     } else {
                         isProcessing = false;
                         cells.forEach(c => c.style.pointerEvents = 'auto');
-                        this.textContent = "";
+                        this.textContent = ""; // Сбрасываем при ошибке
 
                         const error = await response.json();
                         alert("Ошибка: " + (error.error || "неизвестно"));

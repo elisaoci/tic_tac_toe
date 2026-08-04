@@ -1,13 +1,10 @@
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for
 from uuid import UUID
 
 from domain.model.game import Game
+from domain.model.game_status import GameStatus
 from domain.service.game_service import GameServiceImpl
-from web.model.game_request import GameRequest
-from web.model.game_response import GameResponse
-from web.mapper.game_web_mapper import request_to_domain, domain_to_response
 from di.container import Container
-
 from web.middleware.auth_middleware import require_auth
 
 game_bp = Blueprint('game', __name__)
@@ -15,9 +12,11 @@ game_bp = Blueprint('game', __name__)
 container = Container()
 game_service: GameServiceImpl = container.game_service
 
-'''@game_bp.route('/game/<uuid_str>', methods=['POST'])
+
+@game_bp.route('/game/<uuid_str>', methods=['POST'])
 @require_auth
 def make_move(uuid_str: str):
+    """Обработка хода игрока (универсально для PvP и PvE)"""
     try:
         UUID(uuid_str)
     except ValueError:
@@ -27,99 +26,149 @@ def make_move(uuid_str: str):
     if not data or 'field' not in data:
         return jsonify({"error": "Ожидается JSON с полем 'field'"}), 400
 
-    if not isinstance(data['field'], list) or len(data['field']) != 3 \
-            or any(len(row) != 3 for row in data['field']):
-        return jsonify({"error": "Поле должно быть 3×3"}), 400
+    try:
+        updated_game = game_service.make_move(
+            game_uuid=uuid_str,
+            player_uuid=request.user_uuid,
+            field=data['field']
+        )
 
-    client_request = GameRequest(uuid=uuid_str, field=data['field'])
-    new_game_state = request_to_domain(client_request)
+        return jsonify({
+            "uuid": updated_game.uuid,
+            "field": updated_game.board.field,
+            "status": updated_game.status.value,
+            "current_player_uuid": updated_game.current_player_uuid
+        })
 
-    current_game = game_service.repo.get(uuid_str)
-    if current_game is None:
-        return jsonify({"error": "Игра не найдена"}), 404
-
-    if not game_service.check_player_move(current_game, new_game_state):
-        return jsonify({"error": "Некорректный ход игрока"}), 400
-
-    if game_service.is_game_over(current_game):
-        return jsonify({"error": "Игра уже завершена"}), 400
-
-    updated_game = game_service.get_computer_move(new_game_state)
-    game_service.repo.save(updated_game)
-
-    return jsonify(domain_to_response(updated_game).__dict__)'''
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": "Внутренняя ошибка сервера"}), 500
 
 
-@game_bp.route('/game/<uuid_str>', methods=['POST'])
+@game_bp.route('/games/new', methods=['GET', 'POST'])
 @require_auth
-def make_move(uuid_str: str):
-    # 1. Достаем существующую игру из базы
-    current_game = game_service.repo.get(uuid_str)
-    if not current_game:
-        return jsonify({"error": "Игра не найдена"}), 404
+def create_game_page():
+    """Страница выбора режима игры"""
+    if request.method == 'POST':
+        mode = request.form.get('mode', 'pve')
+        if mode not in ['pve', 'pvp']:
+            mode = 'pve'
 
-    # 2. Получаем новое поле от клиента (после хода игрока)
-    data = request.get_json()
-    current_game.board.field = data['field']
+        game = game_service.create_game(player_uuid=request.user_uuid, mode=mode)
+        return redirect(url_for('game.game_page', uuid_str=game.uuid))
 
-    # 3. После хода игрока (X), очередь компьютера (O)
-    current_game.board.current_player = 2
+    return render_template('create_game.html')
 
-    # 4. КРИТИЧЕСКИ ВАЖНО: Сохраняем ход игрока в ЛЮБОМ случае
-    # (даже если это последний ход, приводящий к ничьей или победе)
-    game_service.repo.save(current_game)
-
-    # 5. Делаем ход компьютера ТОЛЬКО если игра ещё не закончена
-    if not current_game.board.get_winner() and not current_game.board.is_fill():
-        updated_game = game_service.get_computer_move(current_game)
-    else:
-        # Игра закончена (победа игрока или ничья) — компьютер не ходит
-        updated_game = current_game
-
-    # 6. Возвращаем клиенту обновленное состояние
-    return jsonify({
-        "uuid": updated_game.uuid,
-        "field": updated_game.board.field,
-        "current_player": updated_game.board.current_player
-    })
 
 @game_bp.route('/game/new')
 @require_auth
-def new_game_page():
-    game = Game(user_uuid=request.user_uuid)
-    container.repository.save(game)
+def new_game_redirect():
+    """Старая ссылка для совместимости, перенаправляет на выбор режима"""
+    return redirect(url_for('game.create_game_page'))
 
-    # Явно передаем winner=None, чтобы шаблон знал, что игра только началась
-    return render_template(
-        'game.html',
-        game_uuid=game.uuid,
-        board=game.board.field,
-        winner=None  # <-- ДОБАВИТЬ ЭТУ СТРОКУ
-    )
 
 @game_bp.route('/game/<uuid_str>')
 @require_auth
 def game_page(uuid_str: str):
+    """Отображение страницы конкретной игры"""
     try:
         UUID(uuid_str)
     except ValueError:
         return "Неверный UUID", 400
 
-    game = container.repository.get(uuid_str)
+    game = game_service.get_game(uuid_str)
     if not game:
         return "Игра не найдена", 404
 
-    # 1. Определяем, есть ли победитель
-    winner = game.board.get_winner()
-
-    # 2. Если победителя нет, но поле заполнено — это ничья
-    if winner is None and game.board.is_fill():
+    # Маппинг статуса в winner для совместимости с frontend (game.html)
+    winner = None
+    if game.status == GameStatus.WIN:
+        if game.get_winner_uuid() == game.player1_uuid:
+            winner = 1
+        elif game.get_winner_uuid() == game.player2_uuid:
+            winner = 2
+    elif game.status == GameStatus.DRAW:
         winner = 0
 
-        # 3. Возвращаем UUID, поле И статус победителя
+    # Определяем роли текущего пользователя в этой игре
+    is_player1 = (request.user_uuid == game.player1_uuid)
+    is_player2 = (request.user_uuid == game.player2_uuid)
+    is_my_turn = (game.current_player_uuid == request.user_uuid)
+
+    # Определяем символ текущего игрока (1 = X, 2 = O)
+    my_symbol = 1 if is_player1 else 2  # <-- ВОТ ЭТА СТРОКА БЫЛА ПРОПУЩЕНА
+
     return render_template(
         'game.html',
         game_uuid=game.uuid,
         board=game.board.field,
-        winner=winner  # <-- ЭТОЙ СТРОКИ НЕ ХВАТАЛО!
+        winner=winner,
+        game_status=game.status.value,
+        is_my_turn=is_my_turn,
+        game_mode=game.mode,
+        is_player1=is_player1,
+        is_player2=is_player2,
+        my_symbol=my_symbol
     )
+
+# ==========================================================
+# API ENDPOINT'Ы ДЛЯ МУЛЬТИПЛЕЕРА (ЗАДАНИЕ 3)
+# ==========================================================
+
+@game_bp.route('/games', methods=['POST'])
+@require_auth
+def create_game_api():
+    """Создание новой игры через API"""
+    data = request.get_json() or {}
+    mode = data.get('mode', 'pve')
+
+    if mode not in ['pve', 'pvp']:
+        return jsonify({"error": "Неверный режим. Используйте 'pve' или 'pvp'"}), 400
+
+    game = game_service.create_game(player_uuid=request.user_uuid, mode=mode)
+
+    return jsonify({
+        "uuid": game.uuid,
+        "mode": game.mode,
+        "status": game.status.value,
+        "message": "Игра успешно создана"
+    }), 201
+
+
+@game_bp.route('/games', methods=['GET'])
+@require_auth
+def get_available_games_api():
+    """Получение списка игр, ожидающих второго игрока (лобби PvP)"""
+    games = game_service.get_available_games()
+
+    return jsonify([{
+        "uuid": g.uuid,
+        "mode": g.mode,
+        "status": g.status.value,
+        "player1_uuid": g.player1_uuid
+    } for g in games]), 200
+
+
+@game_bp.route('/games/<uuid_str>/join', methods=['POST'])
+@require_auth
+def join_game_api(uuid_str: str):
+    """Присоединение второго игрока к игре (только для PvP)"""
+    try:
+        game = game_service.join_game(game_uuid=uuid_str, player_uuid=request.user_uuid)
+
+        # Если запрос НЕ является JSON (то есть пришел из обычной HTML-формы браузера)
+        if not request.is_json:
+            return redirect(url_for('game.game_page', uuid_str=uuid_str))
+
+        # Если это API-запрос (например, из тестов или curl), возвращаем JSON
+        return jsonify({
+            "uuid": game.uuid,
+            "status": game.status.value,
+            "message": "Вы успешно присоединились к игре"
+        }), 200
+
+    except ValueError as e:
+        if not request.is_json:
+            return f"Ошибка: {str(e)}. <a href='/games/new'>Вернуться к выбору игр</a>", 400
+        return jsonify({"error": str(e)}), 400

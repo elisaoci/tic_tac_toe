@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Выбор режима игры</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .menu-container {
+            max-width: 400px;
+            margin: 50px auto;
+            text-align: center;
+            padding: 20px;
+            border: 2px solid #333;
+            border-radius: 10px;
+        }
+        .btn-mode {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        .btn-mode:hover { background-color: #45a049; }
+        .btn-pvp { background-color: #2196F3; }
+        .btn-pvp:hover { background-color: #0b7dda; }
+    </style>
+</head>
+<body>
+    <div class="menu-container">
+        <h1>Новая игра</h1>
+        <p>Выберите режим:</p>
+
+        <form method="POST">
+            <button type="submit" name="mode" value="pve" class="btn-mode">
+                🤖 Играть против Компьютера
+            </button>
+
+            <button type="submit" name="mode" value="pvp" class="btn-mode btn-pvp">
+                👥 Играть против Игрока (PvP)
+            </button>
+        </form>
+
+        <br>
+        <a href="/">← На главную</a>
+    </div>
+</body>
+</html>
