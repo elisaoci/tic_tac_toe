@@ -6,6 +6,8 @@ from domain.model.game_status import GameStatus
 from domain.service.game_service import GameServiceImpl
 from di.container import Container
 from web.middleware.auth_middleware import require_auth
+from datasource.model.user_model import UserModel
+from datasource.database import SessionLocal
 
 game_bp = Blueprint('game', __name__)
 
@@ -202,3 +204,31 @@ def history_page():
     """Страница просмотра истории игр"""
     games = game_service.get_finished_games_by_user(request.user_uuid)
     return render_template('history.html', games=games)
+
+
+@game_bp.route('/leaderboard')
+@require_auth
+def leaderboard_page():
+    """Страница таблицы лидеров"""
+    n = request.args.get('n', 10, type=int)
+    stats = game_service.get_top_players(n)
+
+    # Создаём сессию для получения данных о пользователях
+    session = SessionLocal()
+    try:
+        players = []
+        for stat in stats:
+            # Ищем пользователя в БД
+            user = session.query(UserModel).filter(UserModel.uuid == stat['user_uuid']).first()
+            login = user.login if user else "Unknown"
+
+            players.append({
+                "login": login,
+                "wins": stat['total_wins'],
+                "losses_draws": stat['total_losses_draws'],
+                "win_ratio": round(stat['win_ratio'], 2)
+            })
+    finally:
+        session.close()
+
+    return render_template('leaderboard.html', players=players)

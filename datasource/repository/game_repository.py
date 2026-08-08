@@ -6,6 +6,7 @@ from datasource.mapper.game_mapper import to_model, to_domain
 from domain.model.game import Game
 from domain.model.game_status import GameStatus
 from datetime import datetime, timedelta
+from sqlalchemy import text
 
 class SQLAlchemyGameRepository:
     """Репозиторий для работы с играми в БД"""
@@ -80,3 +81,56 @@ class SQLAlchemyGameRepository:
             self.session.commit()
             return True
         return False
+
+    def get_top_players(self, limit: int) -> list:
+        """Получить топ-N игроков по соотношению побед (только PvP игры)"""
+        query = text("""
+            WITH user_stats AS (
+                -- Статистика как Player 1
+                SELECT 
+                    player1_uuid as user_uuid,
+                    SUM(CASE WHEN status = 'win' AND winner_uuid = player1_uuid THEN 1 ELSE 0 END) as wins,
+                    SUM(CASE WHEN status = 'draw' OR (status = 'win' AND winner_uuid != player1_uuid) THEN 1 ELSE 0 END) as losses_draws
+                FROM games
+                WHERE player1_uuid IS NOT NULL 
+                AND player1_uuid != '00000000-0000-0000-0000-000000000000'
+                AND player2_uuid IS NOT NULL
+                AND player2_uuid != '00000000-0000-0000-0000-000000000000'
+                GROUP BY player1_uuid
+
+                UNION ALL
+
+                -- Статистика как Player 2
+                SELECT 
+                    player2_uuid as user_uuid,
+                    SUM(CASE WHEN status = 'win' AND winner_uuid = player2_uuid THEN 1 ELSE 0 END) as wins,
+                    SUM(CASE WHEN status = 'draw' OR (status = 'win' AND winner_uuid != player2_uuid) THEN 1 ELSE 0 END) as losses_draws
+                FROM games
+                WHERE player1_uuid IS NOT NULL 
+                AND player1_uuid != '00000000-0000-0000-0000-000000000000'
+                AND player2_uuid IS NOT NULL
+                AND player2_uuid != '00000000-0000-0000-0000-000000000000'
+                GROUP BY player2_uuid
+            )
+            SELECT 
+                user_uuid,
+                SUM(wins) as total_wins,
+                SUM(losses_draws) as total_losses_draws,
+                -- NULLIF защищает от ошибки "division by zero"
+                SUM(wins)::float / NULLIF(SUM(losses_draws), 0) as win_ratio
+            FROM user_stats
+            GROUP BY user_uuid
+            ORDER BY win_ratio DESC NULLS LAST
+            LIMIT :limit
+        """)
+
+        result = self.session.execute(query, {"limit": limit}).fetchall()
+        return [
+            {
+                "user_uuid": str(row.user_uuid),
+                "total_wins": row.total_wins,
+                "total_losses_draws": row.total_losses_draws,
+                "win_ratio": float(row.win_ratio) if row.win_ratio else 0.0
+            }
+            for row in result
+        ]

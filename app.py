@@ -17,6 +17,7 @@ def create_app() -> Flask:
         <p><a href="/games/new"> Начать игру (выбор режима)</a></p>
         <p><a href="/games/lobby"> Лобби (список игр PvP)</a></p>
         <p><a href="/history"> История моих игр</a></p>
+        <p><a href="/leaderboard"> Таблица лидеров</a></p>
         '''
 
     return app

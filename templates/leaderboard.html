@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Таблица лидеров</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .leaderboard-container { max-width: 600px; margin: 50px auto; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #4CAF50; color: white; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        .rank-1 { color: gold; font-weight: bold; font-size: 1.2em; }
+        .rank-2 { color: silver; font-weight: bold; font-size: 1.1em; }
+        .rank-3 { color: #cd7f32; font-weight: bold; } /* Бронза */
+        .btn-back {
+            padding: 10px 20px; background-color: #4CAF50; color: white;
+            border: none; border-radius: 5px; cursor: pointer; text-decoration: none;
+            display: inline-block; margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="leaderboard-container">
+        <h1>🏆 Таблица лидеров</h1>
+
+        {% if players %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Игрок</th>
+                        <th>Победы</th>
+                        <th>Поражения/Ничьи</th>
+                        <th>Рейтинг</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in players %}
+                        <tr>
+                            <td class="rank-{{ loop.index if loop.index <= 3 else '' }}">{{ loop.index }}</td>
+                            <td>{{ player.login }}</td>
+                            <td>{{ player.wins }}</td>
+                            <td>{{ player.losses_draws }}</td>
+                            <td><strong>{{ player.win_ratio }}</strong></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p style="color: gray;">Пока нет сыгранных PvP игр. Будь первым!</p>
+        {% endif %}
+
+        <a href="/" class="btn-back">← На главную</a>
+    </div>
+</body>
+</html>

@@ -144,3 +144,7 @@ class GameServiceImpl(GameService):
     def get_finished_games_by_user(self, user_uuid: str) -> list:
         """Получить все завершенные игры пользователя"""
         return self.repo.get_finished_games_by_user(user_uuid)
+
+    def get_top_players(self, limit: int) -> list:
+        """Получить топ лучших игроков"""
+        return self.repo.get_top_players(limit)
