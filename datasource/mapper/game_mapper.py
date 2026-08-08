@@ -17,7 +17,8 @@ def to_model(game: Game) -> GameModel:
         player2_symbol=game.player2_symbol,
         current_player_uuid=game.current_player_uuid,
         field=game.board.field,
-        current_player=game.board.current_player
+        current_player=game.board.current_player,
+        created_at = game.created_at if hasattr(game, 'created_at') else None
     )
 
 
@@ -39,5 +40,8 @@ def to_domain(model: GameModel) -> Game:
         current_player_uuid=str(model.current_player_uuid) if model.current_player_uuid else None
     )
     game.uuid = str(model.uuid)
+
+    if hasattr(model, 'created_at'):
+        game.created_at = model.created_at
 
     return game

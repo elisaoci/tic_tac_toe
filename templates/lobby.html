@@ -14,7 +14,7 @@
 <body>
     <div class="lobby-container">
         <h1>👀 Лобби игр (PvP)</h1>
-        <p>Выберите игру, чтобы присоединиться:</p>
+        <p>Доступно игр: <strong>{{ games | length }}</strong> (за последние 24 часа)</p>
 
         {% if games %}
             {% for game in games %}

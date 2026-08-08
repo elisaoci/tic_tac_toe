@@ -12,11 +12,12 @@ def create_app() -> Flask:
     @app.route("/")
     def index():
         return '''
-            <h1>Крестики-нолики</h1>
-            <p><a href="/register_page">📝 Зарегистрировать нового пользователя</a></p>
-            <p><a href="/games/new">🎮 Начать игру (выбор режима)</a></p>
-            <p><a href="/games/lobby">👀 Лобби (список игр PvP)</a></p> <!-- Ссылка на будущее -->
-            '''
+        <h1>Крестики-нолики</h1>
+        <p><a href="/register_page"> Зарегистрировать нового пользователя</a></p>
+        <p><a href="/games/new"> Начать игру (выбор режима)</a></p>
+        <p><a href="/games/lobby"> Лобби (список игр PvP)</a></p>
+        <p><a href="/history"> История моих игр</a></p>
+        '''
 
     return app
 

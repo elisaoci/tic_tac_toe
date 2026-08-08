@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>История игр</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .history-container { max-width: 800px; margin: 50px auto; text-align: center; }
+        .game-card {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .game-info { text-align: left; }
+        .game-date { color: gray; font-size: 14px; }
+        .result-win { color: green; font-weight: bold; }
+        .result-loss { color: red; font-weight: bold; }
+        .result-draw { color: orange; font-weight: bold; }
+        .btn-back {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+        }
+        .btn-back:hover { background-color: #45a049; }
+    </style>
+</head>
+<body>
+    <div class="history-container">
+        <h1>📜 История ваших игр</h1>
+
+        {% if games %}
+            <p>Всего игр: <strong>{{ games | length }}</strong></p>
+
+            {% for game in games %}
+                <div class="game-card">
+                    <div class="game-info">
+                        <strong>Игра #{{ game.uuid[:8] }}...</strong>
+                        <div class="game-date">
+                            {{ game.created_at.strftime('%d.%m.%Y %H:%M') if game.created_at else 'Неизвестно' }}
+                            | Режим: {{ 'PvP' if game.mode == 'pvp' else 'PvE' }}
+                        </div>
+                    </div>
+                    <div class="game-result">
+                        {% if game.status.value == 'win' %}
+                            {% if game.winner_uuid == request.user_uuid %}
+                                <span class="result-win"> Победа</span>
+                            {% else %}
+                                <span class="result-loss"> Поражение</span>
+                            {% endif %}
+                        {% elif game.status.value == 'draw' %}
+                            <span class="result-draw"> Ничья</span>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p style="color: gray;">Вы ещё не сыграли ни одной завершенной игры.</p>
+        {% endif %}
+
+        <a href="/" class="btn-back">← На главную</a>
+    </div>
+</body>
+</html>

@@ -1,6 +1,7 @@
 import uuid
 from domain.model.board import Board
 from domain.model.game_status import GameStatus
+from datetime import datetime
 
 
 class Game:
@@ -21,7 +22,8 @@ class Game:
             player2_uuid: str = None,
             player1_symbol: int = 1,  # 1 = X (всегда ходит первым)
             player2_symbol: int = 2,  # 2 = O
-            current_player_uuid: str = None
+            current_player_uuid: str = None,
+            created_at: datetime = None
     ):
         self.uuid = str(uuid.uuid4())
         self.user_uuid = user_uuid  # UUID создателя игры
@@ -40,6 +42,8 @@ class Game:
             self.board = Board()
         else:
             self.board = board
+
+        self.created_at = created_at if created_at else datetime.utcnow()
 
     # === Вспомогательные методы ===
 

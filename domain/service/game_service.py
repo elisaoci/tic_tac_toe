@@ -140,3 +140,7 @@ class GameServiceImpl(GameService):
     def is_game_over(self, game: Game) -> bool:
         """Проверка окончания игры"""
         return game.is_finished()
+
+    def get_finished_games_by_user(self, user_uuid: str) -> list:
+        """Получить все завершенные игры пользователя"""
+        return self.repo.get_finished_games_by_user(user_uuid)

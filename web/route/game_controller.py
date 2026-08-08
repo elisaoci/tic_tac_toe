@@ -179,3 +179,26 @@ def lobby_page():
     """Страница лобби для выбора игры PvP"""
     games = game_service.get_available_games()
     return render_template('lobby.html', games=games)
+
+
+@game_bp.route('/games/history', methods=['GET'])
+@require_auth
+def get_game_history():
+    """Получение истории завершенных игр текущего пользователя"""
+    games = game_service.get_finished_games_by_user(request.user_uuid)
+
+    return jsonify([{
+        "uuid": g.uuid,
+        "mode": g.mode,
+        "status": g.status.value,
+        "created_at": g.created_at.isoformat() if g.created_at else None,
+        "player1_uuid": g.player1_uuid,
+        "player2_uuid": g.player2_uuid
+    } for g in games]), 200
+
+@game_bp.route('/history')
+@require_auth
+def history_page():
+    """Страница просмотра истории игр"""
+    games = game_service.get_finished_games_by_user(request.user_uuid)
+    return render_template('history.html', games=games)
