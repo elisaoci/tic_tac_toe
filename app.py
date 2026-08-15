@@ -18,24 +18,19 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# Подключаем статические файлы (CSS, JS)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Подключаем роутеры
 app.include_router(auth_router)
 app.include_router(game_router)
 
 
 @app.exception_handler(401)
 async def unauthorized_exception_handler(request: Request, exc: StarletteHTTPException):
-    """При ошибке 401 перенаправляем на главную (для HTML) или возвращаем JSON (для API)"""
     accept_header = request.headers.get("accept", "")
 
     if "text/html" in accept_header:
-        # Для браузера — редирект на главную
         return RedirectResponse(url="/", status_code=303)
     else:
-        # Для API/Swagger — возвращаем JSON
         return JSONResponse(
             status_code=401,
             content={"detail": "Not authenticated"}
@@ -44,14 +39,11 @@ async def unauthorized_exception_handler(request: Request, exc: StarletteHTTPExc
 
 @app.get("/", response_class=HTMLResponse)
 def root(request: Request, logout: int = 0):
-    # Проверяем валидность токена
     token = request.cookies.get("access_token")
     is_authenticated = False
 
-    # Если logout=1, точно не авторизован
     if logout == 1:
         is_authenticated = False
-    # Иначе проверяем токен
     elif token and token.strip():
         try:
             import jwt
@@ -61,11 +53,28 @@ def root(request: Request, logout: int = 0):
         except jwt.PyJWTError:
             is_authenticated = False
 
+    if is_authenticated:
+        auth_links = """
+            <li><a href="/games/new"> Начать игру</a></li>
+            <li><a href="/games/lobby"> Лобби игр</a></li>
+            <li><a href="/history"> История игр</a></li>
+            <li><a href="/leaderboard_page"> Таблица лидеров</a></li>
+            <li><a href="/auth/logout"> Выйти</a></li>
+        """
+    else:
+        auth_links = """
+            <li><a href="/auth/login"> Войти в систему</a></li>
+            <li><a href="/games/lobby"> Посмотреть лобби (без входа)</a></li>
+        """
+
+    logout_message = '<p style="color: green; margin-top: 20px; font-size: 18px;">✅ Вы успешно вышли из системы</p>' if logout == 1 else ''
+
     return f"""
     <!DOCTYPE html>
     <html lang="ru">
     <head>
         <meta charset="UTF-8">
+        <!-- Запрещаем браузеру кэшировать эту страницу -->
         <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
         <meta http-equiv="Pragma" content="no-cache">
         <meta http-equiv="Expires" content="0">
@@ -87,37 +96,17 @@ def root(request: Request, logout: int = 0):
             .menu a:hover {{ background-color: #0b7dda; }}
             .secondary a {{ background-color: #757575; }}
             .secondary a:hover {{ background-color: #616161; }}
-            .logout-message {{ color: green; margin-top: 20px; font-size: 18px; }}
         </style>
     </head>
     <body>
-        <h1>🎮 Крестики-нолики (FastAPI)</h1>
-        <p>✅ Сервер работает!</p>
-        {'<p class="logout-message">Вы успешно вышли из системы</p>' if logout == 1 else ''}
-        <ul class="menu" id="menu">
-            <li><a href="/auth/login">🔐 Войти в систему</a></li>
-            <li><a href="/games/lobby">👀 Посмотреть лобби (без входа)</a></li>
+        <h1> Крестики-нолики (FastAPI)</h1>
+        {logout_message}
+        <ul class="menu">
+            {auth_links}
         </ul>
         <ul class="menu secondary">
             <li><a href="/docs"> Swagger UI (Документация API)</a></li>
         </ul>
-
-        <script>
-            // Принудительно удаляем cookie на клиенте
-            document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-
-            // Если сервер сказал, что пользователь авторизован, показываем полное меню
-            const isAuth = {"true" if is_authenticated else "false"};
-            if (isAuth) {{
-                document.getElementById('menu').innerHTML = `
-                    <li><a href="/games/new"> Начать игру</a></li>
-                    <li><a href="/games/lobby"> Лобби игр</a></li>
-                    <li><a href="/history">📜 История игр</a></li>
-                    <li><a href="/leaderboard_page">🏆 Таблица лидеров</a></li>
-                    <li><a href="/auth/logout">🚪 Выйти</a></li>
-                `;
-            }}
-        </script>
     </body>
     </html>
     """

@@ -39,15 +39,14 @@ def login(request: LoginRequest, response: Response, db: SessionLocal = Depends(
 
     token = create_access_token(data={"uuid": str(user.uuid), "sub": user.login})
 
-    # Устанавливаем токен в HttpOnly cookie
     response.set_cookie(
         key="access_token",
         value=token,
         httponly=True,
         secure=False,
         samesite="lax",
-        max_age=86400,  # 24 часа
-        path="/"  # Важно: cookie доступна на всём сайте
+        max_age=86400,
+        path="/"
     )
 
     return {"message": "Вход выполнен успешно", "uuid": str(user.uuid)}
@@ -55,23 +54,20 @@ def login(request: LoginRequest, response: Response, db: SessionLocal = Depends(
 
 @router.get("/logout")
 def logout(response: Response):
-    # Удаляем cookie с ИДЕНТИЧНЫМИ параметрами, как при создании
-    response.delete_cookie(
+    response.set_cookie(
         key="access_token",
-        path="/",
+        value="",
         httponly=True,
-        secure=False,  # Должно точно совпадать с параметрами в login
-        samesite="lax"
-        # max_age здесь НЕ НУЖЕН, delete_cookie сам его обнуляет
+        secure=False,
+        samesite="lax",
+        max_age=0,
+        path="/"
     )
     return RedirectResponse(url="/?logout=1", status_code=303)
 
 @router.get("/me")
 def get_me(current_user: UserModel = Depends(get_current_user_from_cookie)):
     return {"uuid": str(current_user.uuid), "login": current_user.login}
-
-
-# ================= HTML СТРАНИЦА ВХОДА =================
 
 @router.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
@@ -81,7 +77,6 @@ def login_page(request: Request):
         context={}
     )
 
-# ================= HTML СТРАНИЦА РЕГИСТРАЦИИ =================
 
 @router.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):

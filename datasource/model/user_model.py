@@ -3,7 +3,6 @@ from di.database import Base
 import uuid
 from werkzeug.security import generate_password_hash, check_password_hash
 
-
 class UserModel(Base):
     __tablename__ = "users"
 

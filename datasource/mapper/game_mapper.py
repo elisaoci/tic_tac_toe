@@ -3,10 +3,7 @@ from domain.model.game_status import GameStatus
 from datasource.model.game_model import GameModel
 from domain.model.board import Board
 
-
-
 def to_model(game: Game) -> GameModel:
-    """Конвертирует Domain-модель в модель БД"""
     return GameModel(
         uuid=game.uuid,
         user_uuid=game.user_uuid,
@@ -23,9 +20,7 @@ def to_model(game: Game) -> GameModel:
         created_at = game.created_at if hasattr(game, 'created_at') else None
     )
 
-
 def to_domain(model: GameModel) -> Game:
-    """Конвертирует модель БД в Domain-модель"""
     board = Board()
     board.field = model.field
     board.current_player = model.current_player

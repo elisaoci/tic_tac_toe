@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import datetime
 
 class CreateGameRequest(BaseModel):
-    mode: str = "pve"  # "pve" или "pvp"
+    mode: str = "pve"
 
 class GameResponse(BaseModel):
     uuid: str

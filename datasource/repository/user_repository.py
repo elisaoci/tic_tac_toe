@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from domain.repository.user_repository_interface import UserRepository
 from datasource.model.user_model import UserModel
 
-
 class SQLAlchemyUserRepository(UserRepository):
     def __init__(self, session: Session):
         self.session = session

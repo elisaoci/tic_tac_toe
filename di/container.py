@@ -4,7 +4,6 @@ from datasource.repository.user_repository import SQLAlchemyUserRepository
 from domain.service.user_service import UserService
 from di.database import SessionLocal
 
-
 class Container:
     def __init__(self):
         session = SessionLocal()

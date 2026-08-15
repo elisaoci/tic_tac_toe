@@ -14,7 +14,7 @@
 </head>
 <body>
     <div class="lobby-container">
-        <h1>👀 Лобби игр (PvP)</h1>
+        <h1> Лобби игр (PvP)</h1>
         <p>Доступно игр: <strong>{{ games|length }}</strong> (ожидают второго игрока)</p>
 
         {% if games %}
@@ -25,7 +25,7 @@
                         <small>UUID: {{ game.uuid }}</small>
                     </div>
                     <button class="btn-join" data-uuid="{{ game.uuid }}">
-                        👥 Присоединиться
+                         Присоединиться
                     </button>
                 </div>
             {% endfor %}
@@ -34,12 +34,11 @@
         {% endif %}
 
         <br>
-        <a href="/games/new">➕ Создать новую игру</a> |
-        <a href="/">🏠 На главную</a>
+        <a href="/games/new"> Создать новую игру</a> |
+        <a href="/" class="btn-back">← На главную</a>
     </div>
 
     <script>
-        // Просто обрабатываем клики по кнопкам "Присоединиться"
         const joinButtons = document.querySelectorAll('.btn-join');
         joinButtons.forEach(button => {
             button.addEventListener('click', async function() {
@@ -54,10 +53,8 @@
                     });
 
                     if (response.ok) {
-                        // Успешно присоединились — переходим на страницу игры
                         window.location.href = `/game/${gameUuid}`;
                     } else if (response.status === 401) {
-                        // Не авторизован — перенаправляем на логин
                         alert("Для присоединения к игре нужно войти в систему");
                         window.location.href = '/auth/login';
                     } else {

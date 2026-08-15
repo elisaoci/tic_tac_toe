@@ -3,12 +3,11 @@ from datetime import datetime, timedelta
 from fastapi import HTTPException, status, Request, Depends
 from sqlalchemy.orm import Session
 from datasource.model.user_model import UserModel
-from web.security.auth import get_db  # Импортируем готовую зависимость get_db
+from web.security.auth import get_db
 
-# Секретный ключ для подписи токенов (в реальном проекте хранится в .env)
 SECRET_KEY = "your-super-secret-key-change-it-in-production"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # Токен живет 24 часа
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
 
 def create_access_token(data: dict):
@@ -21,9 +20,9 @@ def create_access_token(data: dict):
 
 def get_current_user_from_cookie(
         request: Request,
-        db: Session = Depends(get_db)  # <-- ИСПРАВЛЕНИЕ ЗДЕСЬ: используем Depends и тип Session
+        db: Session = Depends(get_db)
 ) -> UserModel:
-    """Получаем пользователя из JWT токена в cookie"""
+
     token = request.cookies.get("access_token")
 
     if not token:

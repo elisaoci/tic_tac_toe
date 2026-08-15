@@ -55,7 +55,7 @@
 </head>
 <body>
     <div class="register-container">
-        <h1>📝 Регистрация</h1>
+        <h1> Регистрация</h1>
         <form id="registerForm">
             <input type="text" id="login" placeholder="Логин" required>
             <input type="password" id="password" placeholder="Пароль (минимум 6 символов)" required>
@@ -85,7 +85,7 @@
 
                 if (response.ok) {
                     messageDiv.className = 'success-message';
-                    messageDiv.textContent = '✅ Регистрация успешна! Перенаправляем на главную...';
+                    messageDiv.textContent = ' Регистрация успешна! Перенаправляем на главную...';
                     setTimeout(() => {
                         window.location.href = '/';
                     }, 1500);

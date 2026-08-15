@@ -26,9 +26,9 @@
     <div id="status">
         {% if game_status == 'win' %}
             {% if (winner == 1 and is_player1) or (winner == 2 and is_player2) %}
-                <p style="color:green; font-size:42px;">🏆 ТЫ ПОБЕДИЛ!</p>
+                <p style="color:green; font-size:42px;"> ТЫ ПОБЕДИЛ!</p>
             {% else %}
-                <p style="color:red; font-size:42px;">😔 Ты проиграл</p>
+                <p style="color:red; font-size:42px;"> Ты проиграл</p>
             {% endif %}
 
         {% elif game_status == 'draw' %}
@@ -43,7 +43,7 @@
                     </button>
                 </form>
             {% else %}
-                <p style="color:blue; font-size:24px;">⏳ Ожидание второго игрока...</p>
+                <p style="color:blue; font-size:24px;"> Ожидание второго игрока...</p>
                 <p style="font-size:16px; background: #f0f0f0; padding: 10px; border-radius: 5px;">
                     Скопируй и отправь эту ссылку другу:<br>
                     <strong>http://127.0.0.1:8000/game/{{ game_uuid }}</strong>
@@ -51,10 +51,10 @@
             {% endif %}
 
         {% elif game_status == 'in_progress' and not is_my_turn %}
-            <p style="color:purple; font-size:24px;">⏳ Ход соперника...</p>
+            <p style="color:purple; font-size:24px;"> Ход соперника...</p>
 
         {% else %}
-            <p style="font-size:24px;">✅ Твой ход!</p>
+            <p style="font-size:24px;"> Твой ход!</p>
         {% endif %}
     </div>
 
@@ -65,17 +65,12 @@
         const uuid = "{{ game_uuid }}";
         const gameStatus = "{{ game_status }}";
 
-        // Получаем данные из Python
         const winner = {{ winner | default(None) | tojson }};
         const isMyTurn = {{ is_my_turn | tojson }};
         const mySymbol = {{ my_symbol }}; // 1 для X, 2 для O
 
         let isProcessing = false;
 
-        // Блокируем поле, если:
-        // 1. Игра закончена (win/draw)
-        // 2. Сейчас не наш ход
-        // 3. Игра в статусе waiting (ждем второго игрока)
         if (winner === 1 || winner === 2 || winner === 0 || !isMyTurn || gameStatus === 'waiting') {
             isProcessing = true;
             cells.forEach(cell => cell.style.pointerEvents = 'none');
@@ -83,10 +78,8 @@
 
         cells.forEach(cell => {
             cell.onclick = async function() {
-                // Блокировка: Если клетка занята или идет обработка запроса
                 if (this.textContent.trim() !== "" || isProcessing) return;
 
-                // Дополнительная защита: не даем ходить в статусе waiting
                 if (gameStatus === 'waiting') {
                     alert(" Игра ещё не началась. Ждём второго игрока!");
                     return;
@@ -95,7 +88,6 @@
                 isProcessing = true;
                 cells.forEach(c => c.style.pointerEvents = 'none');
 
-                // Показываем правильный символ сразу (X или O)
                 this.textContent = mySymbol === 1 ? "X" : "O";
 
                 const row = this.dataset.row;
@@ -103,7 +95,6 @@
 
                 let newBoard = {{ board | tojson }};
 
-                // Записываем в массив правильный символ (1 или 2)
                 newBoard[row][col] = mySymbol;
 
                 try {
@@ -118,10 +109,9 @@
                     } else {
                         isProcessing = false;
                         cells.forEach(c => c.style.pointerEvents = 'auto');
-                        this.textContent = ""; // Сбрасываем при ошибке
+                        this.textContent = "";
 
                         const error = await response.json();
-                        // ИСПРАВЛЕНИЕ: FastAPI возвращает ошибку в поле "detail", а не "error"
                         alert("Ошибка: " + (error.detail || "неизвестно"));
                     }
                 } catch (e) {
@@ -133,7 +123,6 @@
             };
         });
 
-        // Обработка кнопки "Присоединиться к игре"
         const joinForm = document.getElementById('joinForm');
         if (joinForm) {
             joinForm.addEventListener('submit', async function(e) {

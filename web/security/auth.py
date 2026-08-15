@@ -9,7 +9,6 @@ security = HTTPBasic()
 
 
 def get_db():
-    """Dependency для получения сессии БД"""
     db = SessionLocal()
     try:
         yield db
@@ -21,7 +20,6 @@ def get_current_user(
         credentials: HTTPBasicCredentials = Depends(security),
         db: SessionLocal = Depends(get_db)
 ) -> UserModel:
-    """Получить текущего пользователя по Basic Auth"""
     login = credentials.username
     password = credentials.password
 

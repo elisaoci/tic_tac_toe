@@ -5,7 +5,7 @@ from web.schemas.game import (
     CreateGameRequest, GameResponse, JoinGameResponse,
     MoveRequest, HistoryGameResponse, LeaderboardPlayer
 )
-from web.security.auth import get_db  # <-- УБРАЛИ get_current_user
+from web.security.auth import get_db
 from web.security.jwt import get_current_user_from_cookie
 from datasource.model.user_model import UserModel
 from di.database import SessionLocal
@@ -24,7 +24,6 @@ def get_game_service(db: SessionLocal = Depends(get_db)):
     return GameServiceImpl(repo)
 
 
-# --- Вспомогательная функция для тихого редиректа, если нет cookie ---
 def check_auth_and_redirect(request: Request):
     token = request.cookies.get("access_token")
     if not token:
@@ -36,8 +35,6 @@ def check_auth_and_redirect(request: Request):
     except jwt.PyJWTError:
         return RedirectResponse(url="/auth/login", status_code=303)
 
-
-# ================= API ENDPOINTS (JSON) =================
 
 @router.post("/games", response_model=GameResponse, status_code=201)
 def create_game_api(
@@ -118,7 +115,6 @@ def get_leaderboard_api(
     return players
 
 
-# ================= HTML PAGES (UI) =================
 
 @router.get("/games/new", response_class=HTMLResponse)
 def create_game_page(request: Request):
@@ -131,7 +127,6 @@ def create_game_from_form(
         mode: str = Form(...),
         service: GameServiceImpl = Depends(get_game_service)
 ):
-    # ПРОВЕРЯЕМ АВТОРИЗАЦИЮ ПЕРЕД СОЗДАНИЕМ ИГРЫ
     user_uuid = check_auth_and_redirect(request)
     if isinstance(user_uuid, RedirectResponse):
         return user_uuid
@@ -145,10 +140,8 @@ def lobby_page(
         request: Request,
         service: GameServiceImpl = Depends(get_game_service)
 ):
-    # Получаем все игры, ожидающие второго игрока
     all_games = service.get_available_games()
 
-    # Проверяем, авторизован ли пользователь
     token = request.cookies.get("access_token")
     user_uuid = None
 
@@ -161,11 +154,9 @@ def lobby_page(
         except jwt.PyJWTError:
             pass
 
-    # Если пользователь авторизован, фильтруем его игры
     if user_uuid:
         games = [game for game in all_games if str(game.player1_uuid) != user_uuid]
     else:
-        # Гость видит все игры
         games = all_games
 
     return templates.TemplateResponse(
@@ -181,7 +172,6 @@ def game_page(
         game_uuid: str,
         service: GameServiceImpl = Depends(get_game_service)
 ):
-    # ПРОВЕРЯЕМ АВТОРИЗАЦИЮ
     user_uuid = check_auth_and_redirect(request)
     if isinstance(user_uuid, RedirectResponse):
         return user_uuid
@@ -202,13 +192,12 @@ def game_page(
     is_player1 = (user_uuid == str(game.player1_uuid))
     is_player2 = (user_uuid == str(game.player2_uuid))
 
-    # ЧИСТАЯ И ПОНЯТНАЯ ЛОГИКА ОЧЕРЕДНОСТИ ХОДА
     if game.status.value == 'waiting':
         is_my_turn = False
     elif game.mode == 'pve':
-        is_my_turn = (game.status.value == 'in_progress')  # В PvE ходит человек, пока игра не кончилась
+        is_my_turn = (game.status.value == 'in_progress')
     else:
-        is_my_turn = (user_uuid == str(game.current_player_uuid))  # В PvP смотрим на current_player
+        is_my_turn = (user_uuid == str(game.current_player_uuid))
 
     my_symbol = 1 if is_player1 else 2
 
@@ -240,7 +229,7 @@ def history_page(
         name="history.html",
         context={
             "games": games,
-            "user_uuid": user_uuid  # <-- ВАЖНО: передаём UUID пользователя
+            "user_uuid": user_uuid
         }
     )
 

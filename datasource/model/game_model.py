@@ -4,15 +4,12 @@ import uuid
 from di.database import Base
 from domain.model.game_status import GameStatus
 
-
 class GameModel(Base):
-    """Модель игры в базе данных"""
     __tablename__ = 'games'
 
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_uuid = Column(UUID(as_uuid=True), nullable=False)
 
-    # ИСПРАВЛЕНИЕ: values_callable говорит SQLAlchemy использовать lowercase значения из Enum
     status = Column(
         SQLEnum(GameStatus, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
@@ -31,5 +28,4 @@ class GameModel(Base):
 
     winner_uuid = Column(UUID(as_uuid=True), nullable=True)
 
-    # Дата создания игры (время берется из PostgreSQL)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
