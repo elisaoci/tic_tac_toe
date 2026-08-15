@@ -42,6 +42,14 @@ class GameServiceImpl(GameService):
         if game.status != GameStatus.WAITING:
             raise ValueError("К этой игре нельзя присоединиться")
 
+        # ПРОВЕРКА: нельзя присоединиться к своей же игре
+        if game.player1_uuid == player_uuid:
+            raise ValueError("Вы уже являетесь создателем этой игры. Нельзя играть против себя!")
+
+        # ПРОВЕРКА: если player2 уже есть, значит игра уже начата
+        if game.player2_uuid:
+            raise ValueError("В этой игре уже есть второй игрок")
+
         game.player2_uuid = player_uuid
         game.player2_symbol = 2  # Второй игрок ходит ноликами (O)
         game.current_player_uuid = game.player1_uuid  # Первым ходит создатель (X)
@@ -57,6 +65,9 @@ class GameServiceImpl(GameService):
             raise ValueError("Игра не найдена")
         if game.is_finished():
             raise ValueError("Игра уже закончена")
+
+        if game.status == GameStatus.WAITING:
+            raise ValueError("Игра ещё не началась. Ждём второго игрока.")
 
         # Для PvP проверяем, чей сейчас ход
         if game.mode == "pvp" and not game.is_players_turn(player_uuid):
@@ -82,16 +93,21 @@ class GameServiceImpl(GameService):
         # 3. Определяем символ игрока
         player_symbol = game.player1_symbol if player_uuid == game.player1_uuid else game.player2_symbol
 
-        # 4. Ставим символ игрока вручную (без переключения current_player,
-        #    потому что мы сами будем управлять очередностью)
+        # 4. Ставим символ игрока вручную
         game.board.field[move_row][move_col] = player_symbol
 
         # 5. Проверяем, не привел ли ход к победе или ничьей
         winner_symbol = game.board.get_winner()
         if winner_symbol:
             game.status = GameStatus.WIN
+            # Определяем UUID победителя по его символу и сохраняем как строку для SQLAlchemy
+            if winner_symbol == game.player1_symbol:
+                game.winner_uuid = str(game.player1_uuid)
+            else:
+                game.winner_uuid = str(game.player2_uuid)
         elif game.board.is_fill():
             game.status = GameStatus.DRAW
+            game.winner_uuid = None  # При ничьей победителя нет
         else:
             # 6. Переключаем ход
             game.switch_turn()
@@ -109,8 +125,13 @@ class GameServiceImpl(GameService):
                 winner_symbol = game.board.get_winner()
                 if winner_symbol:
                     game.status = GameStatus.WIN
+                    if winner_symbol == game.player1_symbol:
+                        game.winner_uuid = str(game.player1_uuid)
+                    else:
+                        game.winner_uuid = str(game.player2_uuid)
                 elif game.board.is_fill():
                     game.status = GameStatus.DRAW
+                    game.winner_uuid = None
                 else:
                     game.switch_turn()  # Возвращаем ход человеку
 

@@ -23,6 +23,7 @@ class Game:
             player1_symbol: int = 1,  # 1 = X (всегда ходит первым)
             player2_symbol: int = 2,  # 2 = O
             current_player_uuid: str = None,
+            winner_uuid: str = None,
             created_at: datetime = None
     ):
         self.uuid = str(uuid.uuid4())
@@ -36,6 +37,8 @@ class Game:
         self.player1_symbol = player1_symbol
         self.player2_symbol = player2_symbol
         self.current_player_uuid = current_player_uuid
+
+        self.winner_uuid = winner_uuid
 
         # Игровое поле
         if board is None:

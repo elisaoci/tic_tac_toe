@@ -53,7 +53,7 @@
                     </div>
                     <div class="game-result">
                         {% if game.status.value == 'win' %}
-                            {% if game.winner_uuid == request.user_uuid %}
+                            {% if game.winner_uuid|string == user_uuid|string %}
                                 <span class="result-win"> Победа</span>
                             {% else %}
                                 <span class="result-loss"> Поражение</span>

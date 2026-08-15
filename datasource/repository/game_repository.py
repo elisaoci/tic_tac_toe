@@ -38,19 +38,15 @@ class SQLAlchemyGameRepository:
         cutoff_time = datetime.utcnow() - timedelta(hours=24)
 
         models = self.session.query(GameModel).filter(
-            GameModel.status == GameStatus.WAITING,
+            GameModel.status == GameStatus.WAITING.value,
             GameModel.created_at >= cutoff_time
         ).order_by(GameModel.created_at.desc()).all()
 
         return [to_domain(model) for model in models]
 
     def get_finished_games_by_user(self, user_uuid: str) -> List[Game]:
-        """Получить все завершенные игры пользователя"""
-        # Игра завершена, если:
-        # 1. Статус WIN и пользователь выиграл (его UUID совпадает с winner_uuid)
-        # 2. Статус DRAW (ничья)
-
-        # Сначала получаем все игры пользователя
+        """Получить все завершенные игры пользователя (победы, поражения и ничьи)"""
+        # Получаем все игры пользователя
         models = self.session.query(GameModel).filter(
             or_(
                 GameModel.player1_uuid == user_uuid,
@@ -58,18 +54,13 @@ class SQLAlchemyGameRepository:
             )
         ).all()
 
-        # Фильтруем только завершенные
+        # Фильтруем только завершенные игры
         finished_games = []
         for model in models:
             game = to_domain(model)
-            # Проверяем, завершена ли игра
-            if game.status == GameStatus.DRAW:
+            # Добавляем ВСЕ завершенные игры (победы, поражения и ничьи)
+            if game.status == GameStatus.DRAW or game.status == GameStatus.WIN:
                 finished_games.append(game)
-            elif game.status == GameStatus.WIN:
-                # Проверяем, выиграл ли именно этот пользователь
-                winner_uuid = game.get_winner_uuid()
-                if winner_uuid == user_uuid:
-                    finished_games.append(game)
 
         return finished_games
 

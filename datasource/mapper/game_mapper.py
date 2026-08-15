@@ -1,7 +1,8 @@
 from domain.model.game import Game
-from domain.model.board import Board
 from domain.model.game_status import GameStatus
 from datasource.model.game_model import GameModel
+from domain.model.board import Board
+
 
 
 def to_model(game: Game) -> GameModel:
@@ -18,6 +19,7 @@ def to_model(game: Game) -> GameModel:
         current_player_uuid=game.current_player_uuid,
         field=game.board.field,
         current_player=game.board.current_player,
+        winner_uuid=game.winner_uuid,
         created_at = game.created_at if hasattr(game, 'created_at') else None
     )
 
@@ -37,6 +39,7 @@ def to_domain(model: GameModel) -> Game:
         player2_uuid=str(model.player2_uuid) if model.player2_uuid else None,
         player1_symbol=model.player1_symbol,
         player2_symbol=model.player2_symbol,
+        winner_uuid=model.winner_uuid,
         current_player_uuid=str(model.current_player_uuid) if model.current_player_uuid else None
     )
     game.uuid = str(model.uuid)

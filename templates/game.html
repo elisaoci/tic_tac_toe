@@ -32,12 +32,12 @@
             {% endif %}
 
         {% elif game_status == 'draw' %}
-            <p style="color:orange; font-size:42px;">🤝 Ничья!</p>
+            <p style="color:orange; font-size:42px;"> Ничья!</p>
 
         {% elif game_status == 'waiting' %}
             {% if not is_player1 %}
-                <p style="color:blue; font-size:24px;">⏳ Игра ожидает второго игрока</p>
-                <form action="/games/{{ game_uuid }}/join" method="POST" style="margin-top: 15px;">
+                <p style="color:blue; font-size:24px;"> Игра ожидает второго игрока</p>
+                <form id="joinForm" style="margin-top: 15px;">
                     <button type="submit" style="padding: 10px 20px; font-size: 18px; background-color: #2196F3; color: white; border: none; border-radius: 5px; cursor: pointer;">
                         👥 Присоединиться к игре
                     </button>
@@ -46,7 +46,7 @@
                 <p style="color:blue; font-size:24px;">⏳ Ожидание второго игрока...</p>
                 <p style="font-size:16px; background: #f0f0f0; padding: 10px; border-radius: 5px;">
                     Скопируй и отправь эту ссылку другу:<br>
-                    <strong>http://127.0.0.1:5001/game/{{ game_uuid }}</strong>
+                    <strong>http://127.0.0.1:8000/game/{{ game_uuid }}</strong>
                 </p>
             {% endif %}
 
@@ -63,6 +63,7 @@
     <script>
         const cells = document.querySelectorAll('.cell');
         const uuid = "{{ game_uuid }}";
+        const gameStatus = "{{ game_status }}";
 
         // Получаем данные из Python
         const winner = {{ winner | default(None) | tojson }};
@@ -71,8 +72,11 @@
 
         let isProcessing = false;
 
-        // Блокируем поле, если игра закончена ИЛИ сейчас не наш ход
-        if (winner === 1 || winner === 2 || winner === 0 || !isMyTurn) {
+        // Блокируем поле, если:
+        // 1. Игра закончена (win/draw)
+        // 2. Сейчас не наш ход
+        // 3. Игра в статусе waiting (ждем второго игрока)
+        if (winner === 1 || winner === 2 || winner === 0 || !isMyTurn || gameStatus === 'waiting') {
             isProcessing = true;
             cells.forEach(cell => cell.style.pointerEvents = 'none');
         }
@@ -82,10 +86,16 @@
                 // Блокировка: Если клетка занята или идет обработка запроса
                 if (this.textContent.trim() !== "" || isProcessing) return;
 
+                // Дополнительная защита: не даем ходить в статусе waiting
+                if (gameStatus === 'waiting') {
+                    alert(" Игра ещё не началась. Ждём второго игрока!");
+                    return;
+                }
+
                 isProcessing = true;
                 cells.forEach(c => c.style.pointerEvents = 'none');
 
-                // ИСПРАВЛЕНИЕ 1: Показываем правильный символ сразу (X или O)
+                // Показываем правильный символ сразу (X или O)
                 this.textContent = mySymbol === 1 ? "X" : "O";
 
                 const row = this.dataset.row;
@@ -93,7 +103,7 @@
 
                 let newBoard = {{ board | tojson }};
 
-                // ИСПРАВЛЕНИЕ 2: Записываем в массив правильный символ (1 или 2)
+                // Записываем в массив правильный символ (1 или 2)
                 newBoard[row][col] = mySymbol;
 
                 try {
@@ -111,7 +121,8 @@
                         this.textContent = ""; // Сбрасываем при ошибке
 
                         const error = await response.json();
-                        alert("Ошибка: " + (error.error || "неизвестно"));
+                        // ИСПРАВЛЕНИЕ: FastAPI возвращает ошибку в поле "detail", а не "error"
+                        alert("Ошибка: " + (error.detail || "неизвестно"));
                     }
                 } catch (e) {
                     isProcessing = false;
@@ -121,6 +132,33 @@
                 }
             };
         });
+
+        // Обработка кнопки "Присоединиться к игре"
+        const joinForm = document.getElementById('joinForm');
+        if (joinForm) {
+            joinForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const uuid = "{{ game_uuid }}";
+                try {
+                    const response = await fetch(`/games/${uuid}/join`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        const error = await response.json();
+                        alert("Ошибка: " + (error.detail || "Не удалось присоединиться"));
+                    }
+                } catch (e) {
+                    alert("Ошибка сети");
+                }
+            });
+        }
     </script>
 </body>
 </html>
