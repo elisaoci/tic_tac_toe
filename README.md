@@ -56,6 +56,7 @@ python app.py
 Проект разделен на логические слои для обеспечения слабосвязанности и тестируемости:
 ```bash
 ├── app.py
+├── requirements.txt
 ├── datasource
 │   ├── __init__.py
 │   ├── mapper
