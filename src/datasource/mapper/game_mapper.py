@@ -1,5 +1,4 @@
 from domain.model.game import Game
-from domain.model.game_status import GameStatus
 from datasource.model.game_model import GameModel
 from domain.model.board import Board
 

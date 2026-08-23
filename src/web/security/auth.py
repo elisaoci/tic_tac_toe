@@ -1,9 +1,8 @@
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBasic, HTTPAuthorizationCredentials, HTTPBasicCredentials
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from di.database import SessionLocal
 from datasource.model.user_model import UserModel
 from werkzeug.security import check_password_hash
-import base64
 
 security = HTTPBasic()
 

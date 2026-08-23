@@ -7,8 +7,6 @@ from web.routers.game_router import router as game_router
 import uvicorn
 
 from di.database import Base, engine
-from datasource.model.user_model import UserModel
-from datasource.model.game_model import GameModel
 
 Base.metadata.create_all(bind=engine)
 
