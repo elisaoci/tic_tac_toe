@@ -4,14 +4,14 @@
 
 ## Механика и возможности
 
-- Авторизация и безопасность: Регистрация и вход с использованием JWT-токенов, сохраняемых в HttpOnly cookies (защита от XSS).
-- Два режима игры:
-- PvP: Игра против другого реального игрока через систему лобби.
-- PvE: Игра против компьютера, использующего алгоритм Minimax для выбора оптимального хода.
-- Умное лобби: Автоматическая фильтрация игр (пользователь не видит игры, которые создал сам, чтобы избежать игры "против себя").
-- История игр: Детальный журнал всех завершенных партий с указанием результата (победа, поражение, ничья).
-- Таблица лидеров: Динамический рейтинг игроков с расчетом коэффициента побед (win_ratio) на основе сложных SQL-агрегаций.
-- Защита от читерства: Полная валидация ходов, очередности и состояния игры на стороне сервера.
+- **Авторизация и безопасность**: Регистрация и вход с использованием JWT-токенов, сохраняемых в HttpOnly cookies (защита от XSS).
+- **Два режима игры**:
+· PvP: Игра против другого реального игрока через систему лобби.
+· PvE: Игра против компьютера, использующего алгоритм Minimax для выбора оптимального хода.
+- **Умное лобби**: Автоматическая фильтрация игр (пользователь не видит игры, которые создал сам, чтобы избежать игры "против себя").
+- **История игр**: Детальный журнал всех завершенных партий с указанием результата (победа, поражение, ничья).
+- **Таблица лидеров**: Динамический рейтинг игроков с расчетом коэффициента побед (win_ratio) на основе сложных SQL-агрегаций.
+- **Защита от читерства**: Полная валидация ходов, очередности и состояния игры на стороне сервера.
 
 ## Технологии
 
@@ -20,14 +20,30 @@
 - Валидация и схемы: Pydantic
 - Безопасность: PyJWT, Werkzeug (хеширование паролей)
 - Frontend: HTML5, CSS3, Vanilla JavaScript (Fetch API), Jinja2 (шаблонизатор)
+- Инфраструктура: Docker, Docker Compose
 - Архитектура: Clean Architecture / Layered Architecture, Паттерн Repository, Dependency Injection
 
-## Запуск
+## Быстрый запуск (через Docker)
 
-1. Клонируйте репозиторий:
+1.  Клонируйте репозиторий:
 ```bash
-git clone https://github.com/your-username/tictactoe-fastapi.git
-cd tictactoe-fastapi/src
+git clone https://github.com/your-username/tic_tac_toe.git
+cd tic_tac_toe
+```
+
+2. Запустите приложение и базу данных одной командой:
+```bash
+docker compose up --build
+```
+
+3. Откройте браузер и перейдите по адресу: http://127.0.0.1:8000
+
+## Локальный запуск 
+
+1. Клонируйте репозиторий и перейдите в папку src:
+```bash
+git clone https://github.com/your-username/tic_tac_toe.git
+cd tic_tac_toe/src
 ```
 
 2. Создайте и активируйте виртуальное окружение:
@@ -41,7 +57,7 @@ source .venv/bin/activate  # Для Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-4. Убедитесь, что у вас запущен сервер PostgreSQL, и при необходимости измените `DATABASE_URL` в файле `di/database.py`.
+4. Создайте файл .env (скопируйте .env.example) и укажите свой DATABASE_URL.
   
 5. Запустите приложение:
 ```bash
@@ -54,68 +70,77 @@ python app.py
    
 ## Структура проекта
 Проект разделен на логические слои для обеспечения слабосвязанности и тестируемости:
-```bash
-├── app.py
+```text
+├── .dockerignore
+├── .env.example
+├── .gitignore
+├── Dockerfile
+├── README.md
+├── docker-compose.yml
 ├── requirements.txt
-├── datasource
-│   ├── __init__.py
-│   ├── mapper
-│   │   ├── __init__.py
-│   │   └── game_mapper.py
-│   ├── model
-│   │   ├── __init__.py
-│   │   ├── game_model.py
-│   │   └── user_model.py
-│   └── repository
-│       ├── __init__.py
-│       ├── game_repository.py
-│       └── user_repository.py
-├── di
-│   ├── __init__.py
-│   ├── container.py
-│   └── database.py
-├── domain
-│   ├── __init__.py
-│   ├── model
-│   │   ├── __init__.py
-│   │   ├── board.py
-│   │   ├── game.py
-│   │   └── game_status.py
-│   ├── repository
-│   │   ├── __init__.py
-│   │   └── user_repository_interface.py
-│   └── service
-│       ├── __init__.py
-│       ├── game_service.py
-│       ├── game_service_interface.py
-│       └── user_service.py
-├── helpers
-│   ├── __init__.py
-│   └── minimax.py
-├── static
-│   └── style.css
-├── templates
-│   ├── create_game.html
-│   ├── game.html
-│   ├── history.html
-│   ├── leaderboard.html
-│   ├── lobby.html
-│   ├── login.html
-│   └── register.html
-└── web
+└── src
     ├── __init__.py
-    ├── routers
+    ├── app.py
+    ├── datasource
     │   ├── __init__.py
-    │   ├── auth_router.py
-    │   └── game_router.py
-    ├── schemas
+    │   ├── mapper
+    │   │   ├── __init__.py
+    │   │   └── game_mapper.py
+    │   ├── model
+    │   │   ├── __init__.py
+    │   │   ├── game_model.py
+    │   │   └── user_model.py
+    │   └── repository
+    │       ├── __init__.py
+    │       ├── game_repository.py
+    │       └── user_repository.py
+    ├── di
     │   ├── __init__.py
-    │   ├── auth.py
-    │   └── game.py
-    └── security
+    │   ├── container.py
+    │   └── database.py
+    ├── domain
+    │   ├── __init__.py
+    │   ├── model
+    │   │   ├── __init__.py
+    │   │   ├── board.py
+    │   │   ├── game.py
+    │   │   └── game_status.py
+    │   ├── repository
+    │   │   ├── __init__.py
+    │   │   └── user_repository_interface.py
+    │   └── service
+    │       ├── __init__.py
+    │       ├── game_service.py
+    │       ├── game_service_interface.py
+    │       └── user_service.py
+    ├── helpers
+    │   ├── __init__.py
+    │   └── minimax.py
+    ├── static
+    │   └── style.css
+    ├── templates
+    │   ├── create_game.html
+    │   ├── game.html
+    │   ├── history.html
+    │   ├── leaderboard.html
+    │   ├── lobby.html
+    │   ├── login.html
+    │   └── register.html
+    └── web
         ├── __init__.py
-        ├── auth.py
-        └── jwt.py
+        ├── routers
+        │   ├── __init__.py
+        │   ├── auth_router.py
+        │   └── game_router.py
+        ├── schemas
+        │   ├── __init__.py
+        │   ├── auth.py
+        │   └── game.py
+        └── security
+            ├── __init__.py
+            ├── auth.py
+            └── jwt.py
+
 ```
 
 ## Выходные данные и интерфейс
@@ -132,4 +157,4 @@ python app.py
 - **Безопасность (Security)**: Правильная реализация stateless-аутентификации через JWT в HttpOnly cookies и корректное управление сессиями (логаут).
 - **Работа с БД**: Использование сложных SQL-запросов (CTE, UNION ALL, агрегатные функции) для эффективного расчета статистики без перегрузки Python-кода.
 - **Алгоритмическое мышление**: Реализация алгоритма Minimax для создания интеллектуального противника.
-- **Надежность**: Серверная валидация каждого действия, предотвращающая некорректные состояния игры (race conditions, читы на клиенте).
+- **Надежность и DevOps**: Серверная валидация каждого действия, предотвращающая некорректные состояния игры (race conditions, читы на клиенте), а также полная контейнеризация проекта для воспроизводимого развертывания в любой среде.
